@@ -7,7 +7,7 @@ This is a [Dagster](https://dagster.io/) project made to accompany Dagster Unive
 First, install your Dagster code location as a Python package by running the command below in your terminal. By using the --editable (`-e`) flag, pip will install your Python package in ["editable mode"](https://pip.pypa.io/en/latest/topics/local-project-installs/#editable-installs) so that as you develop, local code changes will automatically apply.
 
 ```bash
-pip install -e ".[dev]"
+poetry install
 ```
 
 Duplicate the `.env.example` file and rename it to `.env`.
@@ -24,7 +24,7 @@ Open http://localhost:3000 with your browser to see the project.
 
 ### Adding new Python dependencies
 
-You can specify new Python dependencies in `setup.py`.
+You can specify new Python dependencies in `pyproject.toml`.
 
 ## Deploy on Dagster Cloud
 
