@@ -2,6 +2,25 @@
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
+[tool.poetry]
+readme = "README.md"
+repository = "https://github.com/Fixer38/nyc_dagster"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.8,<3.13"
+dagster = "^1.7.0"
+dagster-cloud = "*"
+dagster-duckdb = "*"
+geopandas = "*"
+kaleido = "0.2.1"
+pandas = "*"
+plotly = "*"
+shapely = "*"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "*"
+
 [tool.dagster]
 module_name = "dagster_university"
 
