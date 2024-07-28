@@ -1,8 +1,12 @@
+from datetime import timedelta
+
 from dagster import asset
 
 import plotly.express as px
 import plotly.io as pio
 import geopandas as gpd
+import pandas as pd
+from datetime import datetime
 
 import duckdb
 import os
@@ -54,3 +58,78 @@ def manhattan_map() -> None:
     )
 
     pio.write_image(fig, constants.MANHATTAN_MAP_FILE_PATH)
+
+
+@asset(
+    deps=["taxi_trips"]
+)
+def trips_by_week() -> None:
+    conn = duckdb.connect(os.getenv("DUCKDB_DATABASE"))
+
+    current_date = datetime.strptime("2023-03-01", constants.DATE_FORMAT)
+    end_date = datetime.strptime("2023-04-01", constants.DATE_FORMAT)
+
+    result = pd.DataFrame()
+
+    while current_date < end_date:
+        current_date_str = current_date.strftime(constants.DATE_FORMAT)
+        query = f"""
+            select
+                vendor_id, total_amount, trip_distance, passenger_count
+            from trips
+            where date_trunc('week', pickup_datetime) = date_trunc('week', '{current_date_str}'::date)
+        """
+
+        data_for_week = conn.execute(query).fetch_df()
+
+        aggregate = data_for_week.agg({
+            "vendor_id": "count",
+            "total_amount": "sum",
+            "trip_distance": "sum",
+            "passenger_count": "sum"
+        }).rename({"vendor_id": "num_trips"}).to_frame().T # type: ignore
+
+        aggregate["period"] = current_date
+
+        result = pd.concat([result, aggregate])
+
+        current_date += timedelta(days=7)
+
+    # clean up the formatting of the dataframe
+    result['num_trips'] = result['num_trips'].astype(int)
+    result['passenger_count'] = result['passenger_count'].astype(int)
+    result['total_amount'] = result['total_amount'].round(2).astype(float)
+    result['trip_distance'] = result['trip_distance'].round(2).astype(float)
+    result = result[["period", "num_trips", "total_amount", "trip_distance", "passenger_count"]]
+    result = result.sort_values(by="period")
+
+    result.to_csv(constants.TRIPS_BY_WEEK_FILE_PATH, index=False)
+
+@asset(
+    deps=["taxi_trips"]
+)
+def my_trips_by_week() -> None:
+    conn = duckdb.connect(os.getenv("DUCKDB_DATABASE"))
+    current_date = datetime.strptime("2023-03-01", constants.DATE_FORMAT)
+    end_date = datetime.strptime("2023-04-01", constants.DATE_FORMAT)
+
+    query = f"""
+        SELECT
+            time_bucket(INTERVAL '7 day', pickup_datetime) AS period,
+            count(vendor_id) as num_trips,
+            SUM(total_amount) as total_amount,
+            SUM(trip_distance) as trip_distance,
+            SUM(passenger_count) as passenger_count
+        from trips
+        where period between '{current_date}' and '{end_date}'
+        group by period
+        order by period
+    """
+
+    data_for_week = conn.execute(query).fetch_df()
+    data_for_week['num_trips'] = data_for_week['num_trips'].astype(int)
+    data_for_week['passenger_count'] = data_for_week['passenger_count'].astype(int)
+    data_for_week['total_amount'] = data_for_week['total_amount'].round(2).astype(float)
+    data_for_week['trip_distance'] = data_for_week['trip_distance'].round(2).astype(float)
+    data_for_week = data_for_week[["period", "num_trips", "total_amount", "trip_distance", "passenger_count"]]
+    data_for_week.to_csv(constants.TRIPS_BY_WEEK_FILE_PATH, index=False)

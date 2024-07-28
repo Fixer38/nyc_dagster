@@ -21,6 +21,7 @@ shapely = "*"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "*"
+pyarrow = "*"
 
 [tool.dagster]
 module_name = "dagster_university"
