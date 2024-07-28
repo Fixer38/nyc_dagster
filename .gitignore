@@ -2,5 +2,5 @@
 venv/
 
 **/__pycache__
-tmpdb*/
-
+tmp*/
+data/staging/data.duckdb
